@@ -15,37 +15,99 @@
  * Ответ будет приходить в поле {result}
  */
  import Api from '../tools/api';
-
+ import {
+    __,
+    allPass,
+    andThen,
+    assoc,
+    compose,
+    concat,
+    gt,
+    ifElse,
+    length,
+    lt,
+    mathMod,
+    otherwise,
+    partial,
+    prop,
+    tap,    
+    test,
+} from "ramda";
  const api = new Api();
-
- /**
-  * Я – пример, удали меня
-  */
- const wait = time => new Promise(resolve => {
-     setTimeout(resolve, time);
- })
+ const API_NUMBERS_URL = 'https://api.tech/numbers/base'
+ const API_ANIMALS_URL = 'https://animals.tech/'
+ 
+ const getApiResult = compose(String, prop('result'))
+ const thenGetApiResult = andThen(getApiResult)
+ 
+ const lengthGreaterThenTwo = compose(
+     gt(__, 2),
+     length
+ )
+ const lengthLowerThenTen = compose(
+     lt(__, 10),
+     length
+ )
+ const onlyNumbers = test(/^[0-9]+\.?[0-9]+$/)
+ const validate = allPass([lengthGreaterThenTwo, lengthLowerThenTen, onlyNumbers])
+ 
+ const stringToNumber = compose(
+     Math.round,
+     Number
+ )
+ 
+ const getLength = andThen(length)
+ 
+ const getSquare = andThen(num => num ** 2)
+ 
+ const getModForThree = andThen(compose(
+     String,
+     mathMod(__, 3)
+ ))
+ 
+ const getBinaryBase = compose(
+     api.get(API_NUMBERS_URL),
+     assoc('number', __, {from: 10, to: 2})
+ )
+ const getAnimals = andThen(compose(
+     api.get(__, {}),
+     concat(API_ANIMALS_URL)
+ ))
 
  const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-     /**
-      * Я – пример, удали меня
-      */
-     writeLog(value);
+   
+const tapLog = tap(writeLog)
+const thenTapLog = andThen(tapLog)
 
-     api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-         writeLog(result);
-     });
+const thenHandleSuccess = andThen(handleSuccess)
 
-     wait(2500).then(() => {
-         writeLog('SecondLog')
+const otherwiseHandleError = otherwise(handleError)
+const handleValidationError = partial(handleError, ['ValidationError'])
 
-         return wait(1500);
-     }).then(() => {
-         writeLog('ThirdLog');
+const doAndLog = (x) => compose(
+    thenTapLog,
+    x
+)
 
-         return wait(400);
-     }).then(() => {
-         handleSuccess('Done');
-     });
- }
+const sequenceComposition = compose(
+    otherwiseHandleError,
+    thenHandleSuccess,
+    thenGetApiResult,
+    getAnimals,
+    doAndLog(getModForThree),
+    doAndLog(getSquare),
+    doAndLog(getLength),
+    thenTapLog,
+    thenGetApiResult,
+    getBinaryBase,
+    tapLog,
+    stringToNumber
+)
 
- export default processSequence;
+compose(
+    ifElse(validate, sequenceComposition, handleValidationError),
+    tapLog
+)(value)
+}
+
+export default processSequence;

@@ -85,7 +85,6 @@ const squareAndTriangleSameColor = (obj) => equals(getSquareColor(obj), getTrian
 
 
 // 1. Красная звезда, зеленый квадрат, все остальные белые.
-
 export const validateFieldN1 = allPass([
     isRedStar,
     isGreenSquare,
